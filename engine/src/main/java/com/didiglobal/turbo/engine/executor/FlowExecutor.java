@@ -44,6 +44,8 @@ public class FlowExecutor extends RuntimeExecutor {
         int processStatus = ProcessStatus.SUCCESS;
         try {
             preExecute(runtimeContext);
+            // 流程启动事件
+            fireListenerEvent(FlowEventType.PROCESS_STARTED, runtimeContext);
             doExecute(runtimeContext);
         } catch (ProcessException pe) {
             if (!ErrorEnum.isSuccess(pe.getErrNo())) {
@@ -192,6 +194,8 @@ public class FlowExecutor extends RuntimeExecutor {
                 processInstanceDAO.updateStatus(runtimeContext.getFlowInstanceId(), FlowInstanceStatus.COMPLETED);
                 runtimeContext.setFlowInstanceStatus(FlowInstanceStatus.COMPLETED);
             }
+            // 流程完成事件
+            fireListenerEvent(FlowEventType.PROCESS_COMPLETED, runtimeContext);
             LOGGER.info("postExecute: flowInstance process completely.||flowInstanceId={}", runtimeContext.getFlowInstanceId());
         }
     }
@@ -204,6 +208,8 @@ public class FlowExecutor extends RuntimeExecutor {
         int processStatus = ProcessStatus.SUCCESS;
         try {
             preCommit(runtimeContext);
+            // 任务提交开始事件
+            fireListenerEvent(FlowEventType.TASK_COMMITTING, runtimeContext);
             doCommit(runtimeContext);
         } catch (ReentrantException re) {
             //ignore
@@ -331,6 +337,8 @@ public class FlowExecutor extends RuntimeExecutor {
         }
         //update FlowInstancePO to db
         saveNodeInstanceList(runtimeContext, NodeInstanceType.COMMIT);
+        // 任务提交完成事件
+        fireListenerEvent(FlowEventType.TASK_COMMITTED, runtimeContext);
 
         if (isCompleted(runtimeContext)) {
             if (isSubFlowInstance(runtimeContext)) {
@@ -352,6 +360,8 @@ public class FlowExecutor extends RuntimeExecutor {
         int processStatus = ProcessStatus.SUCCESS;
         try {
             preRollback(runtimeContext);
+            // 任务回滚开始事件
+            fireListenerEvent(FlowEventType.TASK_ROLLBACKING, runtimeContext);
             doRollback(runtimeContext);
         } catch (ReentrantException re) {
             //ignore
@@ -479,10 +489,14 @@ public class FlowExecutor extends RuntimeExecutor {
         if (FlowModelUtil.isElementType(runtimeContext.getCurrentNodeModel().getKey(), runtimeContext.getFlowElementMap(), FlowElementType.START_EVENT)) {
             runtimeContext.setFlowInstanceStatus(FlowInstanceStatus.TERMINATED);
             processInstanceDAO.updateStatus(runtimeContext.getFlowInstanceId(), FlowInstanceStatus.TERMINATED);
+            // 流程终止事件
+            fireListenerEvent(FlowEventType.PROCESS_TERMINATED, runtimeContext);
         } else if (runtimeContext.getFlowInstanceStatus() == FlowInstanceStatus.END) {
             runtimeContext.setFlowInstanceStatus(FlowInstanceStatus.RUNNING);
             processInstanceDAO.updateStatus(runtimeContext.getFlowInstanceId(), FlowInstanceStatus.RUNNING);
         }
+        // 任务回滚完成事件
+        fireListenerEvent(FlowEventType.TASK_ROLLBACKED, runtimeContext);
     }
 
     private void fillRollbackContext(RuntimeContext runtimeContext, NodeInstancePO nodeInstancePO,

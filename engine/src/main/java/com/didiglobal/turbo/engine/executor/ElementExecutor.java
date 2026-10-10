@@ -3,6 +3,7 @@ package com.didiglobal.turbo.engine.executor;
 import com.didiglobal.turbo.engine.bo.NodeInstanceBO;
 import com.didiglobal.turbo.engine.common.ErrorEnum;
 import com.didiglobal.turbo.engine.common.FlowElementType;
+import com.didiglobal.turbo.engine.common.FlowEventType;
 import com.didiglobal.turbo.engine.common.NodeInstanceStatus;
 import com.didiglobal.turbo.engine.common.RuntimeContext;
 import com.didiglobal.turbo.engine.entity.InstanceDataPO;
@@ -36,6 +37,8 @@ public abstract class ElementExecutor extends RuntimeExecutor {
     public void execute(RuntimeContext runtimeContext) throws ProcessException {
         try {
             preExecute(runtimeContext);
+            // 节点进入事件
+            fireListenerEvent(FlowEventType.NODE_ENTERING, runtimeContext);
             doExecute(runtimeContext);
         } catch (ReentrantException re) {
             LOGGER.warn("execute ReentrantException: reentrant execute.||runtimeContext={},", runtimeContext, re);
@@ -97,6 +100,8 @@ public abstract class ElementExecutor extends RuntimeExecutor {
     }
 
     protected void postExecute(RuntimeContext runtimeContext) throws ProcessException {
+        // 节点完成事件
+        fireListenerEvent(FlowEventType.NODE_COMPLETED, runtimeContext);
     }
 
     @Override
